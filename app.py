@@ -8,6 +8,7 @@ import os
 
 GET = 'GET'
 POST = 'POST'
+PUT = 'PUT'
 
 
 app = Flask(__name__)
@@ -139,6 +140,7 @@ def planets():
 
 
 @app.route('/planets', methods=[POST])
+@jwt_required
 def add_planet():
     planet_name = request.json['planet_name']
 
@@ -175,6 +177,36 @@ def planet_details(planet_id):
     result = planet_schema.dump(planet)
 
     return jsonify(result)
+
+
+@app.route('/planet/<int:planet_id>', methods=[PUT])
+def update_planet(planet_id):
+    planet = Planet.query.filter_by(planet_id=planet_id).first()
+    if not planet:
+        return jsonify(message="Planet not found!"), 404
+
+    # updating fields
+    if request.json.get('planet_name'):
+        planet_name = request.json['planet_name']
+        planet_exists = Planet.query.filter_by(planet_name=planet_name).first()
+        if planet_exists:
+            return jsonify(message="Planet name already exist!"), 409
+
+        planet.planet_name = request.json['planet_name']
+    if request.json.get('planet_type'):
+        planet.planet_type = request.json['planet_type']
+    if request.json.get('home_star'):
+        planet.home_star = request.json['home_star']
+    if request.json.get('mass'):
+        planet.mass = float(request.json['mass'])
+    if request.json.get('radius'):
+        planet.radius = float(request.json['radius'])
+    if request.json.get('distance'):
+        planet.distance = float(request.json['distance'])
+
+    db.session.commit()
+
+    return jsonify(message="Planet updated successfully!"), 202
 
 
 # database models
