@@ -2,6 +2,7 @@
   <dictionary name="yk">
     <words>
       <w>mailtrap</w>
+      <w>postgresql</w>
       <w>smtp</w>
       <w>sqlalchemy</w>
       <w>tablename</w>

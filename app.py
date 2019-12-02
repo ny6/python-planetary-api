@@ -6,6 +6,15 @@ from flask_jwt_extended import JWTManager, jwt_required, create_access_token
 from flask_mail import Mail, Message
 import os
 
+
+def get_env_variable(name):
+    try:
+        return os.environ[name]
+    except KeyError:
+        message = f"Expected environment variable '{name}' not set!"
+        raise Exception(message)
+
+
 GET = 'GET'
 POST = 'POST'
 PUT = 'PUT'
@@ -13,13 +22,21 @@ DELETE = 'DELETE'
 
 
 app = Flask(__name__)
+
 basedir = os.path.abspath(os.path.dirname(__file__))
-db_path = os.path.join(basedir, "planets.db")
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+
+POSTGRES_URL = get_env_variable("POSTGRES_URL")
+POSTGRES_USER = get_env_variable("POSTGRES_USER")
+POSTGRES_PW = get_env_variable("POSTGRES_PW")
+POSTGRES_DB = get_env_variable("POSTGRES_DB")
+DB_URL = f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PW}@{POSTGRES_URL}/{POSTGRES_DB}"
+
+app.config['SQLALCHEMY_DATABASE_URI'] = DB_URL
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = 'super-secret'
 app.config['MAIL_SERVER'] = 'smtp.mailtrap.io'
-app.config['MAIL_USERNAME'] = os.environ['MAIL_USERNAME']
-app.config['MAIL_PASSWORD'] = os.environ['MAIL_PASSWORD']
+app.config['MAIL_USERNAME'] = get_env_variable('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = get_env_variable('MAIL_PASSWORD')
 app.config['MAIL_PORT'] = 2525
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
