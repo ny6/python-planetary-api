@@ -9,6 +9,7 @@ import os
 GET = 'GET'
 POST = 'POST'
 PUT = 'PUT'
+DELETE = 'DELETE'
 
 
 app = Flask(__name__)
@@ -132,6 +133,7 @@ def reset_password(email: str):
 
 
 @app.route('/planets', methods=[GET])
+@jwt_required
 def planets():
     planets_list = Planet.query.all()
     result = planets_schema.dump(planets_list)
@@ -168,6 +170,7 @@ def add_planet():
 
 
 @app.route('/planet/<int:planet_id>', methods=[GET])
+@jwt_required
 def planet_details(planet_id):
     planet = Planet.query.filter_by(planet_id=planet_id).first()
 
@@ -180,6 +183,7 @@ def planet_details(planet_id):
 
 
 @app.route('/planet/<int:planet_id>', methods=[PUT])
+@jwt_required
 def update_planet(planet_id):
     planet = Planet.query.filter_by(planet_id=planet_id).first()
     if not planet:
@@ -207,6 +211,19 @@ def update_planet(planet_id):
     db.session.commit()
 
     return jsonify(message="Planet updated successfully!"), 202
+
+
+@app.route('/planet/<int:planet_id>', methods=[DELETE])
+@jwt_required
+def delete_planet(planet_id):
+    planet = Planet.query.filter_by(planet_id=planet_id).first()
+    if not planet:
+        return jsonify(message="Planet not found!"), 404
+
+    db.session.delete(planet)
+    db.session.commit()
+
+    return jsonify(message="Planet deleted successfully!"), 202
 
 
 # database models
