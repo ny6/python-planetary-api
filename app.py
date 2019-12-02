@@ -83,14 +83,6 @@ def db_seed():
 
 
 # endpoints
-@app.route('/planets', methods=[GET])
-def planets():
-    planets_list = Planet.query.all()
-    result = planets_schema.dump(planets_list)
-
-    return jsonify(result)
-
-
 @app.route('/register', methods=[POST])
 def register():
     email = request.json['email']
@@ -136,6 +128,53 @@ def reset_password(email: str):
     mail.send(message)
 
     return jsonify(message=f"Password sent to {email}")
+
+
+@app.route('/planets', methods=[GET])
+def planets():
+    planets_list = Planet.query.all()
+    result = planets_schema.dump(planets_list)
+
+    return jsonify(result)
+
+
+@app.route('/planets', methods=[POST])
+def add_planet():
+    planet_name = request.json['planet_name']
+
+    planet_exists = Planet.query.filter_by(planet_name=planet_name).first()
+    if planet_exists:
+        return jsonify(message="Planet name already exist!"), 409
+
+    planet_type = request.json['planet_type']
+    home_star = request.json['home_star']
+    mass = float(request.json['mass'])
+    radius = float(request.json['radius'])
+    distance = float(request.json['distance'])
+
+    planet = Planet(planet_name=planet_name,
+                    planet_type=planet_type,
+                    home_star=home_star,
+                    mass=mass,
+                    radius=radius,
+                    distance=distance)
+
+    db.session.add(planet)
+    db.session.commit()
+
+    return jsonify(message="Planet created successfully!"), 201
+
+
+@app.route('/planet/<int:planet_id>', methods=[GET])
+def planet_details(planet_id):
+    planet = Planet.query.filter_by(planet_id=planet_id).first()
+
+    if not planet:
+        return jsonify(message="That planet does not exist!"), 404
+
+    result = planet_schema.dump(planet)
+
+    return jsonify(result)
 
 
 # database models
