@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, Integer, String, Float
 from flask_marshmallow import Marshmallow
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token
 import os
 
 GET = 'GET'
@@ -12,9 +13,12 @@ app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
 db_path = os.path.join(basedir, "planets.db")
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+app.config['JWT_SECRET_KEY'] = 'super-secret'
+
 
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
+jwt = JWTManager(app)
 
 
 # cli commands
@@ -84,8 +88,8 @@ def planets():
 def register():
     email = request.json['email']
 
-    test = User.query.filter_by(email=email).first()
-    if test:
+    user_exists_already = User.query.filter_by(email=email).first()
+    if user_exists_already:
         return jsonify(message="Email already exists!"), 409
 
     first_name = request.json['first_name']
@@ -96,7 +100,20 @@ def register():
     db.session.add(user)
     db.session.commit()
 
-    return jsonify(message="User created successfully!"), 201
+    return jsonify(message="User created successfully!"),
+
+
+@app.route('/login', methods=[POST])
+def login():
+    email = request.json['email']
+    password = request.json['password']
+
+    user_exists_already = User.query.filter_by(email=email, password=password).first()
+    if not user_exists_already:
+        return jsonify(message="Invalid credentials!"), 401
+
+    access_token = create_access_token(identity=email)
+    return jsonify(message="Login succeeded!", access_token=access_token)
 
 
 # database models
