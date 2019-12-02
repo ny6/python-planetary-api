@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, Integer, String, Float
 from flask_marshmallow import Marshmallow
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token
+from flask_mail import Mail, Message
 import os
 
 GET = 'GET'
@@ -14,12 +15,18 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 db_path = os.path.join(basedir, "planets.db")
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['JWT_SECRET_KEY'] = 'super-secret'
+app.config['MAIL_SERVER'] = 'smtp.mailtrap.io'
+app.config['MAIL_USERNAME'] = os.environ['MAIL_USERNAME']
+app.config['MAIL_PASSWORD'] = os.environ['MAIL_PASSWORD']
+app.config['MAIL_PORT'] = 2525
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
 
 
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
 jwt = JWTManager(app)
-
+mail = Mail(app)
 
 # cli commands
 @app.cli.command('db_create')
@@ -116,6 +123,21 @@ def login():
     return jsonify(message="Login succeeded!", access_token=access_token)
 
 
+@app.route('/reset_password/<string:email>', methods=[GET])
+def reset_password(email: str):
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify(message="Email doesn't exist!"), 401
+
+    message = Message(subject="Planetary account reset password request",
+                      body=f"Your planetary account password is {user.password}",
+                      sender="admin@yeshu.in",
+                      recipients=[email])
+    mail.send(message)
+
+    return jsonify(message=f"Password sent to {email}")
+
+
 # database models
 class User(db.Model):
     __tablename__ = 'users'
@@ -153,7 +175,6 @@ users_schema = UserSchema(many=True)
 
 planet_schema = PlanetSchema()
 planets_schema = PlanetSchema(many=True)
-
 
 if __name__ == '__main__':
     app.run()
